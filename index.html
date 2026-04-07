@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reddit Task Tracker</title>
+<style>
+  :root {
+    --bg: #f9f8f6;
+    --surface: #ffffff;
+    --surface2: #f3f2ef;
+    --border: #e5e4e0;
+    --border2: #d0cfc9;
+    --text: #1a1918;
+    --text2: #6b6a66;
+    --text3: #9b9a96;
+    --green: #1d9e75;
+    --green-bg: #eaf3de;
+    --green-text: #2d6b11;
+    --red: #e24b4a;
+    --red-bg: #fcebeb;
+    --red-text: #a32d2d;
+    --amber: #ba7517;
+    --amber-bg: #faeeda;
+    --amber-text: #854f0b;
+    --blue: #378add;
+    --blue-bg: #e6f1fb;
+    --blue-text: #185fa5;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111110;
+      --surface: #1c1c1b;
+      --surface2: #252523;
+      --border: #2e2e2c;
+      --border2: #3a3a38;
+      --text: #f0ede8;
+      --text2: #a09e9a;
+      --text3: #6b6966;
+      --green-bg: #0d2a1a;
+      --green-text: #5dc8a5;
+      --red-bg: #2a0f0f;
+      --red-text: #f09595;
+      --amber-bg: #2a1a05;
+      --amber-text: #f0b44e;
+      --blue-bg: #0a1e33;
+      --blue-text: #85b7eb;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 0; position: sticky; top: 0; z-index: 100; }
+  .brand { font-size: 15px; font-weight: 600; padding: 14px 20px 14px 0; color: var(--text); border-right: 1px solid var(--border); margin-right: 4px; white-space: nowrap; }
+  .nav-tabs { display: flex; gap: 0; flex: 1; overflow-x: auto; }
+  .nav-tab { padding: 14px 18px; font-size: 13px; color: var(--text2); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color 0.12s; }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--text); border-bottom-color: var(--text); font-weight: 500; }
+
+  .main { max-width: 900px; margin: 0 auto; padding: 28px 20px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; }
+  .section-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .metric { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .metric-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
+  .metric-value { font-size: 24px; font-weight: 600; letter-spacing: -0.5px; }
+  .metric-value.g { color: var(--green); }
+  .metric-value.r { color: var(--red); }
+  .metric-value.b { color: var(--blue); }
+  .metric-value.a { color: var(--amber); }
+
+  .input-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; }
+  .input-group { display: flex; flex-direction: column; gap: 4px; }
+  .input-group label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; }
+  input[type="text"], input[type="number"], select, textarea {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-size: 13px; padding: 8px 11px; font-family: inherit;
+    transition: border-color 0.12s;
+  }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); }
+  textarea { width: 100%; resize: vertical; min-height: 150px; font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1.7; font-size: 12.5px; }
+
+  button {
+    border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface);
+    color: var(--text); padding: 8px 16px; font-size: 13px; cursor: pointer; font-family: inherit;
+    transition: background 0.12s, border-color 0.12s; font-weight: 500;
+  }
+  button:hover { background: var(--surface2); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary:hover { opacity: 0.85; background: var(--text); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-danger { border-color: var(--red); color: var(--red); }
+  .btn-danger:hover { background: var(--red-bg); }
+
+  .progress-wrap { margin: 10px 0; display: none; }
+  .progress-track { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.25s; width: 0%; }
+  .status-text { font-size: 12px; color: var(--text2); margin-top: 6px; font-family: monospace; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-live { background: var(--green-bg); color: var(--green-text); }
+  .badge-removed { background: var(--red-bg); color: var(--red-text); }
+  .badge-pending { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-checking { background: var(--blue-bg); color: var(--blue-text); }
+  .badge-error { background: var(--red-bg); color: var(--red-text); }
+  .badge-filtered { background: var(--surface2); color: var(--text2); }
+
+  .mono { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px; }
+  .link-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .link-cell a { color: var(--blue-text); text-decoration: none; }
+  .link-cell a:hover { text-decoration: underline; }
+
+  .del-btn { border: none; background: none; color: var(--text3); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+  .del-btn:hover { background: var(--red-bg); color: var(--red); }
+
+  /* Payments */
+  .pay-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+  .pay-row:last-child { border-bottom: none; }
+  .pay-info { flex: 1; }
+  .pay-label { font-size: 13px; font-weight: 500; }
+  .pay-meta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .pay-amount { font-size: 15px; font-weight: 600; }
+
+  /* Summary */
+  .sum-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; font-size: 14px; }
+  .sum-row.bold { font-weight: 600; font-size: 15px; }
+  .sum-row.profit { font-weight: 600; font-size: 15px; color: var(--green); }
+  .sum-row.loss { font-weight: 600; font-size: 15px; color: var(--red); }
+  .divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 13px; }
+
+  .tag { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 7px; font-size: 11px; color: var(--text2); font-family: monospace; }
+
+  .info-note { background: var(--blue-bg); border: 1px solid var(--blue-bg); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--blue-text); margin-bottom: 14px; line-height: 1.6; }
+  .warn-note { background: var(--amber-bg); border: 1px solid var(--amber-bg); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--amber-text); margin-bottom: 14px; line-height: 1.6; }
+  .proxy-status { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .proxy-status:last-child { border-bottom: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+  .dot.ok { background: var(--green); }
+  .dot.fail { background: var(--red); }
+  .dot.testing { background: var(--amber); }
+
+  .tabs-inner { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tab-inner { padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: none; color: var(--text2); font-weight: 500; }
+  .tab-inner.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .flex-end { justify-content: flex-end; }
+  .between { justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">&#9655; Task Tracker</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-tab="check">Check Links</button>
+    <button class="nav-tab" data-tab="results">Results <span id="results-count"></span></button>
+    <button class="nav-tab" data-tab="payments">Payments</button>
+    <button class="nav-tab" data-tab="settings">Settings</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ── CHECK LINKS ── -->
+  <div class="panel active" id="tab-check">
+    <div class="section">
+      <div class="section-title">Paste links — one per line</div>
+      <div class="tabs-inner">
+        <button class="tab-inner active" id="mode-simple-btn" onclick="setMode('simple')">Links only</button>
+        <button class="tab-inner" id="mode-taskid-btn" onclick="setMode('taskid')">Links + Task IDs</button>
+      </div>
+
+      <div id="hint-simple" style="font-size:12px;color:var(--text2);margin-bottom:8px;">
+        Paste one Reddit URL per line.
+      </div>
+      <div id="hint-taskid" style="font-size:12px;color:var(--text2);margin-bottom:8px;display:none;">
+        Format each line as: <span class="tag">TASKID | URL</span>&nbsp; e.g. <span class="tag">A1001 | https://reddit.com/r/...</span>
+      </div>
+
+      <textarea id="links-input" placeholder="https://reddit.com/r/example/comments/abc123/title/commentid/&#10;https://reddit.com/r/example/comments/def456/..."></textarea>
+
+      <div class="flex" style="margin-top:12px;">
+        <button class="btn-primary" id="run-btn" onclick="runCheck()">&#9654; Check all links</button>
+        <button onclick="clearAll()">Clear</button>
+        <span id="check-status" class="status-text"></span>
+      </div>
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="status-text" id="progress-text"></div>
+      </div>
+    </div>
+
+    <div id="live-metrics" style="display:none">
+      <div class="metrics">
+        <div class="metric"><div class="metric-label">Total</div><div class="metric-value" id="m-total">0</div></div>
+        <div class="metric"><div class="metric-label">Live</div><div class="metric-value g" id="m-live">0</div></div>
+        <div class="metric"><div class="metric-label">Removed</div><div class="metric-value r" id="m-removed">0</div></div>
+        <div class="metric"><div class="metric-label">Errors</div><div class="metric-value" id="m-errors" style="color:var(--text2)">0</div></div>
+        <div class="metric"><div class="metric-label">Live %</div><div class="metric-value b" id="m-pct">0%</div></div>
+        <div class="metric"><div class="metric-label">Due amount</div><div class="metric-value a" id="m-due">$0.00</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div class="panel" id="tab-results">
+    <div class="section">
+      <div class="flex between" style="margin-bottom:14px;">
+        <div class="section-title" style="margin-bottom:0">All tasks</div>
+        <div class="flex">
+          <button class="btn-sm" onclick="recheckErrors()">Retry errors</button>
+          <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Task ID</th>
+              <th>Link</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Checked</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody">
+            <tr><td colspan="7"><div class="empty">No results yet. Paste links and run a check.</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAYMENTS ── -->
+  <div class="panel" id="tab-payments">
+    <div class="section">
+      <div class="section-title">Revenue summary</div>
+      <div class="sum-row"><span>Total tasks</span><span id="ps-total">0</span></div>
+      <div class="sum-row"><span>Live tasks</span><span id="ps-live">0</span></div>
+      <div class="sum-row"><span>Client rate (per live link)</span><span id="ps-crate">$0.00</span></div>
+      <div class="divider"></div>
+      <div class="sum-row bold"><span>Gross revenue</span><span id="ps-gross">$0.00</span></div>
+      <div class="sum-row"><span style="color:var(--text2)">Worker cost (per live link)</span><span id="ps-wrate">$0.00</span></div>
+      <div class="sum-row"><span style="color:var(--text2)">Total worker cost</span><span id="ps-wtotal">$0.00</span></div>
+      <div class="sum-row"><span style="color:var(--text2)">Manual payments logged</span><span id="ps-manpay">$0.00</span></div>
+      <div class="divider"></div>
+      <div class="sum-row profit" id="profit-row"><span>Net profit</span><span id="ps-profit">$0.00</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Log a payment</div>
+      <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:flex-end;">
+        <div class="input-group">
+          <label>Note / label</label>
+          <input type="text" id="pay-label" placeholder="e.g. Worker batch 1" style="width:190px">
+        </div>
+        <div class="input-group">
+          <label>Amount ($)</label>
+          <input type="number" id="pay-amount" placeholder="0.00" min="0" step="0.01" style="width:110px">
+        </div>
+        <div class="input-group">
+          <label>Date</label>
+          <input type="text" id="pay-date" style="width:120px">
+        </div>
+        <button onclick="addPayment()">Add payment</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Payment history</div>
+      <div id="payments-list"><div class="empty">No payments logged yet.</div></div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS ── -->
+  <div class="panel" id="tab-settings">
+    <div class="section">
+      <div class="section-title">Connection mode</div>
+      <div class="info-note">
+        The app works <strong>without any backend</strong> — it tries multiple public proxies automatically. If proxies fail, you can optionally add a Cloudflare Worker URL for 100% reliability.
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">Proxy health</div>
+        <div id="proxy-health-list">
+          <div class="proxy-status"><div class="dot" id="dot-0"></div><span id="lbl-0" style="color:var(--text2)">Not tested yet</span></div>
+        </div>
+        <button class="btn-sm" style="margin-top:10px" onclick="testProxies()">Test all proxies</button>
+      </div>
+      <div class="input-row" style="margin-top:14px">
+        <div class="input-group">
+          <label>Optional: Cloudflare Worker URL</label>
+          <input type="text" id="cfg-worker-url" placeholder="https://your-worker.workers.dev (optional)" style="width:360px">
+        </div>
+        <button onclick="testWorker()">Test</button>
+      </div>
+      <div id="worker-test-result" class="status-text"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Rate configuration</div>
+      <div class="input-row">
+        <div class="input-group">
+          <label>Client rate (per live)</label>
+          <input type="number" id="cfg-client-rate" value="0.50" step="0.01" min="0" style="width:110px">
+          <span style="font-size:11px;color:var(--text2)">USD per live link</span>
+        </div>
+        <div class="input-group">
+          <label>Worker rate (per live)</label>
+          <input type="number" id="cfg-worker-rate" value="0.15" step="0.01" min="0" style="width:110px">
+          <span style="font-size:11px;color:var(--text2)">USD per live link</span>
+        </div>
+      </div>
+      <button class="btn-sm" onclick="saveSettings()" style="margin-top:6px">Save rates</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Data management</div>
+      <div class="flex">
+        <button class="btn-danger btn-sm" onclick="clearAllData()">Clear all results</button>
+        <button class="btn-danger btn-sm" onclick="clearPayments()">Clear payments</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let tasks = [];
+let payments = [];
+let inputMode = 'simple';
+
+// ── Proxy chain — tried in order, first success wins ───────
+// Each entry: { name, wrap(url) → proxied_url, parse(text) → json }
+const PROXIES = [
+  {
+    name: 'allorigins.win',
+    wrap: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+    parse: t => JSON.parse(t)
+  },
+  {
+    name: 'corsproxy.io',
+    wrap: u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    parse: t => JSON.parse(t)
+  },
+  {
+    name: 'thingproxy.freeboard.io',
+    wrap: u => `https://thingproxy.freeboard.io/fetch/${u}`,
+    parse: t => JSON.parse(t)
+  },
+  {
+    name: 'jsonp.afeld.me',
+    wrap: u => `https://jsonp.afeld.me/?url=${encodeURIComponent(u)}`,
+    parse: t => JSON.parse(t)
+  }
+];
+
+let workingProxyIndex = -1; // cached working proxy
+
+// ── Init ───────────────────────────────────────────────────
+function init() {
+  loadSettings();
+  document.getElementById('pay-date').value = new Date().toLocaleDateString('en-GB');
+  document.querySelectorAll('.nav-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+  try {
+    const t = localStorage.getItem('rtt_tasks');
+    const p = localStorage.getItem('rtt_payments');
+    if (t) tasks = JSON.parse(t);
+    if (p) payments = JSON.parse(p);
+    if (tasks.length) {
+      document.getElementById('live-metrics').style.display = 'block';
+      updateMetrics();
+      renderResultsCount();
+    }
+  } catch(e) {}
+  renderProxyHealth(PROXIES.map(p => ({ name: p.name, status: 'untested' })));
+}
+
+function loadSettings() {
+  const s = JSON.parse(localStorage.getItem('rtt_settings') || '{}');
+  if (s.workerUrl) document.getElementById('cfg-worker-url').value = s.workerUrl;
+  if (s.clientRate) document.getElementById('cfg-client-rate').value = s.clientRate;
+  if (s.workerRate) document.getElementById('cfg-worker-rate').value = s.workerRate;
+}
+
+function saveSettings() {
+  localStorage.setItem('rtt_settings', JSON.stringify({
+    workerUrl: document.getElementById('cfg-worker-url').value.trim(),
+    clientRate: document.getElementById('cfg-client-rate').value,
+    workerRate: document.getElementById('cfg-worker-rate').value,
+  }));
+  alert('Rates saved.');
+}
+
+function persist() {
+  try {
+    localStorage.setItem('rtt_tasks', JSON.stringify(tasks));
+    localStorage.setItem('rtt_payments', JSON.stringify(payments));
+  } catch(e) {}
+}
+
+// ── Tab routing ────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'results') renderResults();
+  if (name === 'payments') renderPayments();
+}
+
+// ── Input mode ─────────────────────────────────────────────
+function setMode(mode) {
+  inputMode = mode;
+  document.getElementById('mode-simple-btn').classList.toggle('active', mode === 'simple');
+  document.getElementById('mode-taskid-btn').classList.toggle('active', mode === 'taskid');
+  document.getElementById('hint-simple').style.display = mode === 'simple' ? 'block' : 'none';
+  document.getElementById('hint-taskid').style.display = mode === 'taskid' ? 'block' : 'none';
+  document.getElementById('links-input').placeholder = mode === 'simple'
+    ? 'https://reddit.com/r/example/comments/abc123/title/commentid/\nhttps://reddit.com/r/example/comments/def456/...'
+    : 'A1001 | https://reddit.com/r/example/comments/abc123/title/commentid/\nA2002 | https://reddit.com/r/example/comments/def456/...';
+}
+
+// ── Parse input ────────────────────────────────────────────
+function parseInput(raw) {
+  return raw.split('\n').map(l => l.trim()).filter(Boolean).reduce((acc, line) => {
+    if (inputMode === 'taskid' && line.includes('|')) {
+      const [id, url] = line.split('|').map(s => s.trim());
+      if (url && url.startsWith('http')) acc.push({ taskId: id, url });
+    } else if (line.startsWith('http')) {
+      acc.push({ taskId: null, url: line });
+    }
+    return acc;
+  }, []);
+}
+
+function detectType(url) {
+  const parts = url.replace(/\/$/, '').split('/');
+  const ci = parts.indexOf('comments');
+  return (ci !== -1 && parts.length > ci + 3) ? 'comment' : 'post';
+}
+
+function toJsonUrl(url) {
+  let u = url.trim().replace(/\/$/, '').split('?')[0].split('#')[0];
+  u = u.replace('old.reddit.com', 'www.reddit.com');
+  if (!u.includes('reddit.com')) u = u;
+  if (!u.endsWith('.json')) u += '.json';
+  return u;
+}
+
+// ── Core fetch with proxy chain ────────────────────────────
+async function fetchRedditJson(rawUrl) {
+  const jsonUrl = toJsonUrl(rawUrl);
+
+  // 1. Try Cloudflare Worker first if configured
+  const workerUrl = document.getElementById('cfg-worker-url').value.trim();
+  if (workerUrl) {
+    try {
+      const res = await fetch(workerUrl.replace(/\/$/, '') + '/check?url=' + encodeURIComponent(rawUrl), { signal: AbortSignal.timeout(8000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status) return { via: 'worker', status: data.status };
+      }
+    } catch(e) {}
+  }
+
+  // 2. Try cached working proxy first
+  if (workingProxyIndex >= 0) {
+    const proxy = PROXIES[workingProxyIndex];
+    try {
+      const res = await fetch(proxy.wrap(jsonUrl), { signal: AbortSignal.timeout(10000) });
+      if (res.ok) {
+        const text = await res.text();
+        const json = proxy.parse(text);
+        return { via: proxy.name, json };
+      }
+    } catch(e) { workingProxyIndex = -1; }
+  }
+
+  // 3. Try all proxies in sequence
+  for (let i = 0; i < PROXIES.length; i++) {
+    const proxy = PROXIES[i];
+    try {
+      const res = await fetch(proxy.wrap(jsonUrl), { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) continue;
+      const text = await res.text();
+      if (!text || text.trim() === '') continue;
+      const json = proxy.parse(text);
+      workingProxyIndex = i; // cache this working proxy
+      return { via: proxy.name, json };
+    } catch(e) { continue; }
+  }
+
+  throw new Error('All proxies failed');
+}
+
+// ── Interpret Reddit JSON → live/removed ──────────────────
+function interpretResult(result, type) {
+  if (result.status) return result.status; // already resolved by worker
+
+  const { json } = result;
+  if (!json) return 'error';
+
+  try {
+    if (type === 'comment') {
+      if (!Array.isArray(json) || json.length < 2) return interpretPost(json);
+      const comment = json[1]?.data?.children?.[0]?.data;
+      if (!comment) return 'error';
+      if (comment.body === '[removed]' || comment.body === '[deleted]' || comment.removed) return 'removed';
+      const post = json[0]?.data?.children?.[0]?.data;
+      if (post?.removed_by_category) return 'removed';
+      return 'live';
+    } else {
+      return interpretPost(json);
+    }
+  } catch(e) { return 'error'; }
+}
+
+function interpretPost(json) {
+  try {
+    const listing = Array.isArray(json) ? json[0] : json;
+    const post = listing?.data?.children?.[0]?.data;
+    if (!post) return 'error';
+    if (post.removed_by_category || post.selftext === '[removed]' || post.selftext === '[deleted]' || post.removed) return 'removed';
+    return 'live';
+  } catch(e) { return 'error'; }
+}
+
+// ── Check a single link ────────────────────────────────────
+async function checkSingleLink(task) {
+  try {
+    const result = await fetchRedditJson(task.url);
+    return interpretResult(result, task.type);
+  } catch(e) {
+    return 'error';
+  }
+}
+
+// ── Main run ───────────────────────────────────────────────
+async function runCheck() {
+  const raw = document.getElementById('links-input').value.trim();
+  if (!raw) return;
+  const parsed = parseInput(raw);
+  if (!parsed.length) { document.getElementById('check-status').textContent = 'No valid links found.'; return; }
+
+  for (const { taskId, url } of parsed) {
+    if (!tasks.find(t => t.url === url)) {
+      tasks.push({ taskId: taskId || null, url, type: detectType(url), status: 'pending', checked: null });
+    }
+  }
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  const pw = document.getElementById('progress-wrap');
+  const pb = document.getElementById('progress-bar');
+  pw.style.display = 'block';
+  pb.style.width = '0%';
+  document.getElementById('live-metrics').style.display = 'block';
+
+  const toCheck = tasks.filter(t => ['pending', 'error'].includes(t.status));
+  let done = 0;
+  const total = toCheck.length;
+
+  // Check 3 at a time concurrently (avoid hammering proxies)
+  const CONCURRENT = 3;
+  for (let i = 0; i < toCheck.length; i += CONCURRENT) {
+    const batch = toCheck.slice(i, i + CONCURRENT);
+    batch.forEach(t => t.status = 'checking');
+    document.getElementById('progress-text').textContent = `Checking ${Math.min(i + CONCURRENT, total)} of ${total}…`;
+    updateMetrics();
+
+    await Promise.all(batch.map(async task => {
+      task.status = await checkSingleLink(task);
+      task.checked = new Date().toLocaleString();
+      done++;
+      pb.style.width = Math.round((done / total) * 100) + '%';
+      updateMetrics();
+    }));
+
+    persist();
+    renderResultsCount();
+    // Small delay between batches to avoid rate limiting
+    if (i + CONCURRENT < toCheck.length) await new Promise(r => setTimeout(r, 400));
+  }
+
+  btn.disabled = false;
+  const errors = toCheck.filter(t => t.status === 'error').length;
+  let msg = `Done — ${done} checked.`;
+  if (errors > 0) msg += ` ${errors} errored (try "Retry errors" after a moment).`;
+  document.getElementById('check-status').textContent = msg;
+  pw.style.display = 'none';
+  persist();
+}
+
+// ── Proxy health test ──────────────────────────────────────
+async function testProxies() {
+  const testUrl = 'https://www.reddit.com/r/test.json';
+  const statuses = PROXIES.map(p => ({ name: p.name, status: 'testing' }));
+  renderProxyHealth(statuses);
+
+  await Promise.all(PROXIES.map(async (proxy, i) => {
+    try {
+      const res = await fetch(proxy.wrap(testUrl), { signal: AbortSignal.timeout(8000) });
+      const text = await res.text();
+      statuses[i].status = res.ok && text.length > 10 ? 'ok' : 'fail';
+    } catch(e) {
+      statuses[i].status = 'fail';
+    }
+    renderProxyHealth(statuses);
+  }));
+
+  // Set workingProxyIndex to first OK proxy
+  const firstOk = statuses.findIndex(s => s.status === 'ok');
+  workingProxyIndex = firstOk;
+}
+
+function renderProxyHealth(statuses) {
+  document.getElementById('proxy-health-list').innerHTML = statuses.map(s => {
+    const dotClass = s.status === 'ok' ? 'ok' : s.status === 'fail' ? 'fail' : s.status === 'testing' ? 'testing' : '';
+    const label = s.status === 'ok' ? `${s.name} — working` : s.status === 'fail' ? `${s.name} — unavailable` : s.status === 'testing' ? `${s.name} — testing…` : `${s.name}`;
+    return `<div class="proxy-status"><div class="dot ${dotClass}"></div><span style="color:var(--text2)">${label}</span></div>`;
+  }).join('');
+}
+
+// ── Metrics ────────────────────────────────────────────────
+function updateMetrics() {
+  const clientRate = parseFloat(document.getElementById('cfg-client-rate').value) || 0;
+  const live = tasks.filter(t => t.status === 'live').length;
+  const removed = tasks.filter(t => t.status === 'removed').length;
+  const errors = tasks.filter(t => t.status === 'error').length;
+  const total = tasks.length;
+  const pct = total > 0 ? Math.round((live / total) * 100) : 0;
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-live').textContent = live;
+  document.getElementById('m-removed').textContent = removed;
+  document.getElementById('m-errors').textContent = errors;
+  document.getElementById('m-pct').textContent = pct + '%';
+  document.getElementById('m-due').textContent = '$' + (live * clientRate).toFixed(2);
+}
+
+function renderResultsCount() {
+  document.getElementById('results-count').textContent = tasks.length > 0 ? `(${tasks.length})` : '';
+}
+
+// ── Results table ──────────────────────────────────────────
+function renderResults() {
+  const tbody = document.getElementById('results-tbody');
+  if (!tasks.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No results yet. Paste links and run a check.</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = tasks.map((t, i) => {
+    const bc = { live:'badge-live', removed:'badge-removed', pending:'badge-pending', checking:'badge-checking', error:'badge-error' }[t.status] || 'badge-pending';
+    const shortUrl = t.url.replace(/https?:\/\/(www\.)?reddit\.com/, '');
+    return `<tr>
+      <td style="color:var(--text3)">${i + 1}</td>
+      <td><span class="tag">${t.taskId || '—'}</span></td>
+      <td class="link-cell"><a href="${t.url}" target="_blank">${shortUrl}</a></td>
+      <td style="color:var(--text2);font-size:12px">${t.type}</td>
+      <td><span class="badge ${bc}">${t.status}</span></td>
+      <td class="mono" style="color:var(--text3)">${t.checked || '—'}</td>
+      <td><button class="del-btn" onclick="removeTask(${i})">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function removeTask(i) {
+  tasks.splice(i, 1);
+  renderResults(); renderResultsCount(); updateMetrics(); persist();
+}
+
+async function recheckErrors() {
+  tasks.filter(t => t.status === 'error').forEach(t => t.status = 'pending');
+  renderResults();
+  await runCheck();
+}
+
+function clearAll() {
+  tasks = [];
+  document.getElementById('links-input').value = '';
+  document.getElementById('check-status').textContent = '';
+  document.getElementById('live-metrics').style.display = 'none';
+  renderResults(); renderResultsCount(); persist();
+}
+
+function clearAllData() { if (confirm('Clear all results?')) clearAll(); }
+
+// ── Payments ───────────────────────────────────────────────
+function renderPayments() {
+  const clientRate = parseFloat(document.getElementById('cfg-client-rate').value) || 0;
+  const workerRate = parseFloat(document.getElementById('cfg-worker-rate').value) || 0;
+  const live = tasks.filter(t => t.status === 'live').length;
+  const gross = live * clientRate;
+  const workerTotal = live * workerRate;
+  const paidTotal = payments.reduce((s, p) => s + p.amount, 0);
+  const profit = gross - workerTotal - paidTotal;
+
+  document.getElementById('ps-total').textContent = tasks.length;
+  document.getElementById('ps-live').textContent = live;
+  document.getElementById('ps-crate').textContent = '$' + clientRate.toFixed(2);
+  document.getElementById('ps-gross').textContent = '$' + gross.toFixed(2);
+  document.getElementById('ps-wrate').textContent = '$' + workerRate.toFixed(2);
+  document.getElementById('ps-wtotal').textContent = '$' + workerTotal.toFixed(2);
+  document.getElementById('ps-manpay').textContent = '$' + paidTotal.toFixed(2);
+  document.getElementById('ps-profit').textContent = '$' + Math.abs(profit).toFixed(2) + (profit < 0 ? ' (loss)' : '');
+  document.getElementById('profit-row').className = 'sum-row ' + (profit >= 0 ? 'profit' : 'loss');
+
+  const list = document.getElementById('payments-list');
+  if (!payments.length) { list.innerHTML = '<div class="empty">No payments logged yet.</div>'; return; }
+  list.innerHTML = payments.map((p, i) => `
+    <div class="pay-row">
+      <div class="pay-info"><div class="pay-label">${p.label}</div><div class="pay-meta">${p.date}</div></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="pay-amount">$${p.amount.toFixed(2)}</span>
+        <button class="del-btn" onclick="removePayment(${i})">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function addPayment() {
+  const label = document.getElementById('pay-label').value.trim() || 'Payment';
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  const date = document.getElementById('pay-date').value.trim() || new Date().toLocaleDateString('en-GB');
+  if (!amount || isNaN(amount) || amount <= 0) { alert('Enter a valid amount.'); return; }
+  payments.push({ label, amount, date });
+  document.getElementById('pay-label').value = '';
+  document.getElementById('pay-amount').value = '';
+  renderPayments(); persist();
+}
+
+function removePayment(i) {
+  if (!confirm('Remove this payment?')) return;
+  payments.splice(i, 1); renderPayments(); persist();
+}
+
+function clearPayments() {
+  if (!confirm('Clear all payments?')) return;
+  payments = []; renderPayments(); persist();
+}
+
+// ── Export ─────────────────────────────────────────────────
+function exportCSV() {
+  const rows = tasks.map(t => `"${t.taskId||''}","${t.url}","${t.type}","${t.status}","${t.checked||''}"`);
+  const blob = new Blob(['Task ID,URL,Type,Status,Checked\n' + rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reddit_tasks_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+
+// ── Optional worker test ───────────────────────────────────
+async function testWorker() {
+  const url = document.getElementById('cfg-worker-url').value.trim();
+  const el = document.getElementById('worker-test-result');
+  if (!url) { el.textContent = 'Enter a URL first.'; return; }
+  el.textContent = 'Testing…';
+  try {
+    const res = await fetch(url.replace(/\/$/, '') + '/');
+    const data = await res.json();
+    el.textContent = data.ok ? '✓ Worker connected!' : '⚠ Unexpected response.';
+    el.style.color = data.ok ? 'var(--green)' : 'var(--amber)';
+  } catch(e) {
+    el.textContent = '✗ Failed: ' + e.message;
+    el.style.color = 'var(--red)';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
